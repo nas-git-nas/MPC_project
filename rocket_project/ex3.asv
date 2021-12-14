@@ -1,0 +1,38 @@
+close all;
+clc;
+clear;
+
+addpath("C:\Program Files\MATLAB\Casadi")
+addpath("src")
+addpath("Deliverable_3_1\")
+
+% define system
+Ts = 1/20; % Sample time
+rocket = Rocket(Ts);
+[xs, us] = rocket.trim();
+sys = rocket.linearize(xs, us);
+[sys_x, sys_y, sys_z, sys_roll] = rocket.decompose(sys, xs, us);
+
+% Design MPC controller
+H = 5; % Horizon length in seconds
+mpc_x = MPC_Control_x(sys_x, Ts, H);
+mpc_y = MPC_Control_x(sys_y, Ts, H);
+mpc_z = MPC_Control_x(sys_z, Ts, H);
+mpc_roll = MPC_Control_x(sys_roll, Ts, H);
+
+% Get control input
+% ux = mpc_x.get_u(x)
+
+% define simulation variables
+Tf = 4.0; % Time to simulate for
+x0 = [0; 0; 0; 0];
+y0 = [0; 0; 0; 0];
+z0 = [0; 0];
+roll = [0; 0];
+
+% simulate controller
+[T, X_sub, Ux_sub] = rocket.simulate(sys_x, x0, Tf, @mpc_x.get_u, 0);
+[T, Y_sub, Uy_sub] = rocket.simulate(sys_x, x0, Tf, @mpc_x.get_u, 0);
+[T, Z_sub, Uz_sub] = rocket.simulate(sys_x, x0, Tf, @mpc_x.get_u, 0);
+[T, ROLL_sub, Uro_sub] = rocket.simulate(sys_x, x0, Tf, @mpc_x.get_u, 0);
+ph = rocket.plotvis_sub(T, X_sub, U_sub, sys_x, xs, us);
